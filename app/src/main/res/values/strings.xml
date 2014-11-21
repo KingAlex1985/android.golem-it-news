@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name" translatable="false">Golem IT-News</string>
+    <string name="app_short_name" translatable="false">Golem</string>
+    <string name="action_settings">Settings</string>
+    <string name="action_share">Share</string>
+    <string name="menu_refresh">Refresh</string>
+
+</resources>

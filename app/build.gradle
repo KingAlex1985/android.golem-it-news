@@ -1,0 +1,38 @@
+apply plugin: 'com.android.application'
+
+android {
+    signingConfigs {
+        config {
+            keyAlias 'Golem IT-News'
+            keyPassword 'Aqqibpafkylylu2'
+            storeFile file('C:/Users/GodLesZ/Dropbox/Private/android-keystore.jks')
+            storePassword 'Aqqibpafkylylu2'
+        }
+    }
+    compileSdkVersion 20
+    buildToolsVersion "20.0.0"
+    defaultConfig {
+        applicationId "godlesz.de.golemdeit_news2"
+        minSdkVersion 14
+        targetSdkVersion 20
+        versionCode 3
+        versionName '1.0.2'
+        signingConfig signingConfigs.config
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            debuggable false
+            signingConfig signingConfigs.config
+        }
+    }
+    productFlavors {
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile project(':volley')
+    compile project(':jsoup-1.8.1')
+    compile 'com.android.support:support-v4:20.0.0'
+}
