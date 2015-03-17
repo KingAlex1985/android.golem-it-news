@@ -2,6 +2,7 @@ package godlesz.de.golemdeit_news2.rss;
 
 import android.app.Fragment;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.ResultReceiver;
@@ -17,6 +18,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
+import godlesz.de.golemdeit_news2.ApplicationHelper;
 import godlesz.de.golemdeit_news2.ArticleActivity;
 import godlesz.de.golemdeit_news2.R;
 
@@ -38,6 +40,14 @@ public class RssFragment extends Fragment implements AdapterView.OnItemClickList
             view = inflater.inflate(R.layout.fragment_layout, container, false);
             progressBar = (ProgressBar) view.findViewById(R.id.progressBar);
             listView = (ListView) view.findViewById(R.id.listView);
+
+
+            if(ApplicationHelper.is_night_view() == true){
+                listView.setBackgroundColor(Color.BLACK);
+            } else {
+                listView.setBackgroundColor(Color.WHITE);
+            }
+
             listView.setOnItemClickListener(this);
             startService();
 

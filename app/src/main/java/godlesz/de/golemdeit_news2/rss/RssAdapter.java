@@ -1,6 +1,7 @@
 package godlesz.de.golemdeit_news2.rss;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -10,6 +11,7 @@ import com.android.volley.toolbox.NetworkImageView;
 
 import java.util.List;
 
+import godlesz.de.golemdeit_news2.ApplicationHelper;
 import godlesz.de.golemdeit_news2.R;
 import godlesz.de.golemdeit_news2.util.VolleySingleton;
 
@@ -60,6 +62,18 @@ public class RssAdapter extends BaseAdapter {
         holder.title.setText(item.getTitleFormatted());
         holder.teaser.setText(item.getDescription());
         holder.dateInfo.setText(item.getPubDateFormatted());
+
+
+        if(ApplicationHelper.is_night_view() == true){
+            holder.title.setTextColor(Color.WHITE);
+            holder.teaser.setTextColor(Color.WHITE);
+            holder.dateInfo.setTextColor(Color.WHITE);
+        } else {
+            holder.title.setTextColor(Color.BLACK);
+            holder.teaser.setTextColor(Color.BLACK);
+            holder.dateInfo.setTextColor(Color.BLACK);
+
+        }
         return convertView;
     }
 

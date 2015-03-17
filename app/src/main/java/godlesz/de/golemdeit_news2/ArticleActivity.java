@@ -116,8 +116,20 @@ public class ArticleActivity extends Activity {
                     Toast.makeText(activity, "Oh noes! " + description, Toast.LENGTH_SHORT).show();
                 }
             });
+
+            String text = "<html><head>"
+                    + "<style type=\"text/css\">body{color: #fff; background-color: #000;}"
+                    + "</style></head>"
+                    + "<body>"
+                    + result
+                    + "</body></html>";
+
             // Set content and show
-            view.loadData(result, "text/html; charset=UTF-8", null);
+            if(ApplicationHelper.is_night_view()){
+                view.loadData(text, "text/html; charset=UTF-8", null);
+            } else {
+                view.loadData(result, "text/html; charset=UTF-8", null);
+            }
             view.setVisibility(View.VISIBLE);
         }
     }
@@ -163,6 +175,19 @@ public class ArticleActivity extends Activity {
             intent.setType("text/plain");
             intent.putExtra("android.intent.extra.TEXT", _rssItem.getTitle() + "\r\n" + _rssItem.getLink());
             startActivity(Intent.createChooser(intent, "Share"));
+        }
+
+        if (id == R.id.menu_item_article_day_or_night_view) {
+            if(ApplicationHelper.is_night_view() == true){
+                ApplicationHelper.set_night_view(false);
+            } else {
+                ApplicationHelper.set_night_view(true);
+            }
+
+            // Refresh activity
+            finish();
+            startActivity(getIntent());
+
         }
 
         return super.onOptionsItemSelected(item);

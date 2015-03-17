@@ -58,6 +58,19 @@ public class MainActivity extends Activity {
             return true;
         }
 
+        if (id == R.id.menu_item_day_or_night_view) {
+            if(ApplicationHelper.is_night_view() == true){
+                ApplicationHelper.set_night_view(false);
+            } else {
+                ApplicationHelper.set_night_view(true);
+            }
+
+            // Refresh activity
+            finish();
+            startActivity(getIntent());
+
+        }
+
         return super.onOptionsItemSelected(item);
     }
 }
