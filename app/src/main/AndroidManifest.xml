@@ -21,6 +21,7 @@
         </activity>
 
         <service android:name="godlesz.de.golemdeit_news2.rss.RssService" />
+        <service android:name="godlesz.de.golemdeit_news2.util.ArticleTextService" />
 
         <activity
             android:name="godlesz.de.golemdeit_news2.ArticleActivity"

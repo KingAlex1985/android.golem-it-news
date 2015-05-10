@@ -10,14 +10,14 @@ public class News2ContentTable {
     // Database table
     public static final String TABLE_NEWS_CONTENT = "tablenewscontent";
     public static final String COLUMN_ID = "_id";
-    public static final String COLUMN_TITLE = "";
-    public static final String COLUMN_LINK = "";
-    public static final String COLUMN_DESCRIPTION = "";
-    public static final String COLUMN_WHOLETEXT = "";
-    public static final String COLUMN_PUBDATE = "";
-    public static final String COLUMN_THUMBNAILURL = "";
-    public static final String COLUMN_COMMENTCOUNT = "";
-    public static final String COLUMN_COMMENTURL = "";
+    public static final String COLUMN_TITLE = "title";
+    public static final String COLUMN_LINK = "link";
+    public static final String COLUMN_DESCRIPTION = "description";
+    public static final String COLUMN_WHOLETEXT = "wholetext";
+    public static final String COLUMN_PUBDATE = "pubdate";
+    public static final String COLUMN_THUMBNAILURL = "thumbnailurl";
+    public static final String COLUMN_COMMENTCOUNT = "commentcout";
+    public static final String COLUMN_COMMENTURL = "commenturl";
 
     // Database creation SQL statement
     private static final String DATABASE_CREATE = "create table "
@@ -26,12 +26,12 @@ public class News2ContentTable {
             + COLUMN_ID + " integer primary key autoincrement, "
             + COLUMN_TITLE + " text not null, "
             + COLUMN_LINK + " text not null, "
-            + COLUMN_DESCRIPTION + " text not null, "
-            + COLUMN_WHOLETEXT + " text not null, "
-            + COLUMN_PUBDATE + " text not null, "
-            + COLUMN_THUMBNAILURL + " text not null, "
-            + COLUMN_COMMENTCOUNT + " text not null,"
-            + COLUMN_COMMENTURL + " text not null"
+            + COLUMN_DESCRIPTION + " text, "
+            + COLUMN_WHOLETEXT + " text, "
+            + COLUMN_PUBDATE + " text, "
+            + COLUMN_THUMBNAILURL + " text, "
+            + COLUMN_COMMENTCOUNT + " text, "
+            + COLUMN_COMMENTURL + " text"
             + ");";
 
     public static final String[] ALL_COLUMNS = new String[]{

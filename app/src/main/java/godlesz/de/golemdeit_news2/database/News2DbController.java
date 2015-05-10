@@ -25,6 +25,9 @@ public class News2DbController {
     public News2DbController(Context context){
         if (mDbHelper == null){
             mDbHelper = new News2DatabaseHelper(context);
+            if(mDbHelper == null){
+                Log.e(TAG, " Constructor:News2DbController() Error mDbHelper is still NULL.");
+            }
         }
     }
 
@@ -50,6 +53,48 @@ public class News2DbController {
             insertId = db.insert(News2ContentTable.TABLE_NEWS_CONTENT,null, values);
         }
         return insertId;
+    }
+
+    public boolean checkIfGuidAlreadyExists(String guid){
+        boolean guidExists = false;
+
+        openDbWithReadPermission();
+
+        int count = -1;
+        String[] guidStringArray = { guid };
+        Cursor c = null;
+        try {
+            String query = "SELECT COUNT(*) FROM " + News2ContentTable.TABLE_NEWS_CONTENT + " WHERE " + News2ContentTable.COLUMN_LINK + " = ?";
+
+            c = db.rawQuery(query, guidStringArray);
+            if (c.moveToFirst()) {
+                count = c.getInt(0);
+            }
+            if (count > 0) {
+                guidExists = true;
+                //Log.e(TAG, "checkIfGuidAlreadyExists() guid=" + guid + " already exists!");
+            }
+        } finally {
+            if (c != null) {
+                c.close();
+            }
+            closeDB();
+        }
+        return guidExists;
+    }
+
+    public void insertHtmlArticleByGivenUrlLink(String urlLink, String wholeText){
+        openDbWithReadPermission();
+        String table = News2ContentTable.TABLE_NEWS_CONTENT;
+
+        ContentValues values = new ContentValues();
+        values.put(News2ContentTable.COLUMN_WHOLETEXT, wholeText);
+
+        String whereClause = News2ContentTable.COLUMN_LINK + " like '" + urlLink + "'";
+        String[] whereArgs = null;
+        db.update(table, values, whereClause, whereArgs);
+
+        closeDB();
     }
 
     public News2Content getOneContentEntryById(long insertId){
@@ -81,6 +126,118 @@ public class News2DbController {
         closeDB();
 
         return newsContent;
+    }
+
+    public News2Content getOneContentEntryByUrlId(String urlId){
+        News2Content newsContent;
+
+        openDbWithReadPermission();
+
+        String[] projection =News2ContentTable.ALL_COLUMNS;
+        String selection = News2ContentTable.COLUMN_LINK + " like '" + urlId + "'";
+        String[] selectionArgs = null;
+        String sortOrder = null;
+
+        Cursor cursor = db.query(News2ContentTable.TABLE_NEWS_CONTENT, // The table to query
+                projection, // The columns to return
+                selection, // The columns for the WHERE clause
+                selectionArgs, // The values for the WHERE clause
+                null, // don't group the rows
+                null, // don't filter by row groups
+                sortOrder // The sort order
+        );
+
+        cursor.moveToFirst();
+        newsContent = cursorToNews2Content(cursor);
+
+        cursor.close();
+        closeDB();
+
+        return newsContent;
+    }
+
+    public ArrayList<String> getAllUrlIds(){
+        //Log.e(TAG, "getAllUrlIds() was called.");
+
+        ArrayList<String> urlIdList = new ArrayList<String>();
+        openDbWithReadPermission();
+
+        String[] projection = new String[]{ News2ContentTable.COLUMN_LINK};
+        String selection = null;
+        String[] selectionArgs = null;
+        String sortOrder = null;
+
+
+        Cursor cursor = db.query(News2ContentTable.TABLE_NEWS_CONTENT, // The table to query
+                projection, // The columns to return
+                selection, // The columns for the WHERE clause
+                selectionArgs, // The values for the WHERE clause
+                null, // don't group the rows
+                null, // don't filter by row groups
+                sortOrder // The sort order
+        );
+
+        cursor.moveToFirst();
+        while (!cursor.isAfterLast()) {
+            String stringTemp = cursor.getString(0);
+            urlIdList.add(stringTemp);
+            cursor.moveToNext();
+        }
+
+
+        cursor.close();
+        closeDB();
+
+        return urlIdList;
+    }
+
+    public ArrayList<String> getAllUrlIdsWithEmptyArticleText(){
+        //Log.e(TAG, "getAllUrlIdsWithEmptyArticleText() was called.");
+
+        ArrayList<String> urlIdList = new ArrayList<String>();
+        openDbWithReadPermission();
+
+        String[] projection = new String[]{ News2ContentTable.COLUMN_LINK};
+        String selection = News2ContentTable.COLUMN_WHOLETEXT + " IS NULL OR " + News2ContentTable.COLUMN_WHOLETEXT + " = \"\"";
+        String[] selectionArgs = null;
+        String sortOrder = null;
+
+
+        Cursor cursor = db.query(News2ContentTable.TABLE_NEWS_CONTENT, // The table to query
+                projection, // The columns to return
+                selection, // The columns for the WHERE clause
+                selectionArgs, // The values for the WHERE clause
+                null, // don't group the rows
+                null, // don't filter by row groups
+                sortOrder // The sort order
+        );
+
+        if (cursor != null){
+            int countTemp = cursor.getCount();
+            if(countTemp > 0){
+                cursor.moveToFirst();
+                while (!cursor.isAfterLast()) {
+                    String stringTemp = cursor.getString(0);
+                    Log.e(TAG, "getAllUrlIdsWithEmptyArticleText() stringTemp = " + stringTemp);
+                    urlIdList.add(stringTemp);
+                    cursor.moveToNext();
+                }
+            }
+
+            cursor.close();
+        } else {
+            Log.e(TAG, "getAllUrlIdsWithEmptyArticleText() cursor is NULL");
+        }
+
+        closeDB();
+
+        if(urlIdList != null){
+            Log.e(TAG, "getAllUrlIdsWithEmptyArticleText() urlIdList.size() = " + urlIdList.size());
+        } else{
+            Log.e(TAG, "getAllUrlIdsWithEmptyArticleText() urlIdList is NULL");
+        }
+
+        return urlIdList;
     }
 
     public long deleteOneContentEntryById(long insertId){
@@ -115,7 +272,7 @@ public class News2DbController {
         try {
             // Gets the data repository in write mode
             openDbWithWriteAndReadPermission();
-            // Anweisung zum Löschen der Daten
+            // Anweisung zum Loeschen der Daten
             amountOfDeletedEntries = db.delete(News2ContentTable.TABLE_NEWS_CONTENT, null, null);
         } catch (SQLiteException e) {
             Log.e(TAG, "deleteEntriesInDatabase()", e);
@@ -128,36 +285,43 @@ public class News2DbController {
     }
 
     public List<News2Content> getAllNews(){
+        //Log.e(TAG, "getAllNews() was called");
         List<News2Content> allNews = new ArrayList<News2Content>();
 
-        openDbWithReadPermission();
+        try {
+            openDbWithReadPermission();
 
-        String[] projection = News2ContentTable.ALL_COLUMNS;
-        String selection = null;
-        String[] selectionArgs = null;
+            String[] projection = News2ContentTable.ALL_COLUMNS;
+            String selection = null;
+            String[] selectionArgs = null;
 
-        // How you want the results sorted in the resulting Cursor; example:
-        // String sortOrder = News2ContentTable.COLUMN_TITLE + " DESC";
-        String sortOrder = null;
+            // How you want the results sorted in the resulting Cursor; example:
+            String sortOrder = News2ContentTable.COLUMN_LINK + " DESC";
+            //String sortOrder = null;
 
-        Cursor cursor = db.query(News2ContentTable.TABLE_NEWS_CONTENT, // The table to query
-                projection, // The columns to return
-                selection, // The columns for the WHERE clause
-                selectionArgs, // The values for the WHERE clause
-                null, // don't group the rows
-                null, // don't filter by row groups
-                sortOrder // The sort order
-                );
+            Cursor cursor = db.query(News2ContentTable.TABLE_NEWS_CONTENT, // The table to query
+                    projection, // The columns to return
+                    selection, // The columns for the WHERE clause
+                    selectionArgs, // The values for the WHERE clause
+                    null, // don't group the rows
+                    null, // don't filter by row groups
+                    sortOrder // The sort order
+            );
 
-        cursor.moveToFirst();
-        while (!cursor.isAfterLast()){
-            News2Content newsContent = cursorToNews2Content(cursor);
-            allNews.add(newsContent);
-            cursor.moveToNext();
+            cursor.moveToFirst();
+            while (!cursor.isAfterLast()){
+                News2Content newsContent = cursorToNews2Content(cursor);
+                allNews.add(newsContent);
+                cursor.moveToNext();
+            }
+
+            cursor.close();
+        } catch (Exception e){
+            Log.e(TAG, "getAllNews()", e);
+            allNews = null;
+        } finally {
+            closeDB();
         }
-
-        cursor.close();
-        closeDB();
         return allNews;
     }
 
@@ -186,8 +350,14 @@ public class News2DbController {
      **********************************************************/
     public void openDbWithReadPermission() throws SQLException {
         if (db == null) {
+            if(mDbHelper == null){
+                Log.e(TAG, "openDbWithReadPermission() mDbHelper is NULL.");
+            }
             db = mDbHelper.getReadableDatabase();
             Log.d(TAG, "openDbWithREADPermission() was called. db was null.");
+            if(db == null){
+                Log.e(TAG, "openDbWithREADPermission() Error: db is still NULL.");
+            }
         } else {
             if (db.isOpen() == false) {
                 db = mDbHelper.getReadableDatabase();

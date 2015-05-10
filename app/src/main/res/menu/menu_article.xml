@@ -11,4 +11,16 @@
         android:icon="@drawable/ic_action_brightness_medium"
         android:title="@string/menu_day_or_night_view"
         android:showAsAction="ifRoom"/>
+
+    <item android:id="@+id/menu_item_article_fontsize_minus"
+        android:icon="@drawable/ic_action_a_minus"
+        android:title="@string/menu_font_size_minus"
+        android:showAsAction="ifRoom"/>
+
+    <item android:id="@+id/menu_item_article_fontsize_plus"
+        android:icon="@drawable/ic_action_a_plus"
+        android:title="@string/menu_font_size_plus"
+        android:showAsAction="ifRoom"/>
+
+
 </menu>

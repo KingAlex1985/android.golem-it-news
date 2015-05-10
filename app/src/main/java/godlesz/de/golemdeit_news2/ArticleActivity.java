@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -13,7 +14,6 @@ import android.view.Window;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.ShareActionProvider;
 import android.widget.Toast;
 
 import org.jsoup.Connection;
@@ -21,17 +21,28 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
+import godlesz.de.golemdeit_news2.database.News2Content;
+import godlesz.de.golemdeit_news2.database.News2DbController;
 import godlesz.de.golemdeit_news2.rss.RssItem;
 
 
 public class ArticleActivity extends Activity {
+    public static final String TAG = ArticleActivity.class.getSimpleName();
+
     private ProgressDialog pDialog;
     private RssItem _rssItem;
+    private MenuItem fontSizePlusMenuIem;
+    private MenuItem fontSizeMinusMenuIem;
+    private WebView view;
+    private String wholeText = null;
 
     private class ArticleDetailsRequestTask extends AsyncTask<String, Void, String> {
+        private String urlId = null;
 
         @Override
         protected void onPreExecute() {
+            Log.e(TAG, "ArticleDetailsRequestTask$onPreExecute() was called");
+
             super.onPreExecute();
             // Hide text
             WebView view = ((WebView)findViewById(R.id.article));
@@ -42,6 +53,10 @@ public class ArticleActivity extends Activity {
 
         @Override
         protected String doInBackground(String... strings) {
+            //Log.e(TAG, "ArticleDetailsRequestTask$doInBackground() was called. strings[0]=" + strings[0]);
+
+            urlId = strings[0];
+
             try {
                 Connection con = Jsoup
                     .connect(strings[0])
@@ -86,54 +101,103 @@ public class ArticleActivity extends Activity {
 
         @Override
         protected void onPostExecute(String result) {
+            Log.e(TAG, "ArticleDetailsRequestTask$onPostExecute() was called");
+            if(urlId != null){
+                //Log.e(TAG, "ArticleDetailsRequestTask$onPostExecute()urlId = " + urlId);
+                //Log.e(TAG, "ArticleDetailsRequestTask$onPostExecute()testResult = " + result);
+
+                if(result == null || result.length() == 0 || result.equals("")){
+                    //Log.e(TAG, "ArticleDetailsRequestTask$onPostExecute() result is NULL or length == 0");
+                } else {
+                    try{
+                        // save the result to the database
+                        //News2DbController news2DbController = ApplicationHelper.getNews2DbController();
+                        News2DbController news2DbController = new News2DbController(ApplicationHelper.getAppContext());
+                        news2DbController.insertHtmlArticleByGivenUrlLink(urlId, result);
+
+                    } catch (Exception e){
+                        Log.e(TAG, "ArticleDetailsRequestTask$onPostExecute() Exception-Error ", e);
+                    }
+                }
+            }
+
             // Hide loading
             dismissProgressBar();
+            String tempResult = null;
 
             if (result.length() == 0) {
-                result = "<h1>Failed to fetch article</h1>" +
-                    "Sorry, but I'm unable to fetch the article html data from Golem.de.<br />" +
-                    "Please report this to GodLesZ, thank you!";
+                if (urlId != null){
+                    // getOneContentEntryByUrlId
+
+                    try{
+                        //News2DbController news2DbController = ApplicationHelper.getNews2DbController();
+                        News2DbController news2DbController = new News2DbController(ApplicationHelper.getAppContext());
+                        News2Content tempNews2Content = news2DbController.getOneContentEntryByUrlId(urlId);
+
+                        if(tempNews2Content != null){
+                            tempResult = tempNews2Content.getWholetextSql();
+                        } else {
+                            Log.e(TAG, "ArticleDetailsRequestTask$onPostExecute()tempNews2Content is NULL");
+                        }
+
+                    } catch (Exception e){
+                        Log.e(TAG, "ArticleDetailsRequestTask$onPostExecute() Exception-Error ", e);
+                    }
+
+                }
+
+                if(tempResult == null || tempResult.length() == 0 || tempResult.equals("")){
+                    result = "<h1>Failed to fetch article</h1>" +
+                            "Sorry, but I'm unable to fetch the article html data from Golem.de.<br />" +
+                            "Please report this to GodLesZ, thank you!";
+                } else {
+                    result = tempResult;
+                    //Log.e(TAG, "ArticleDetailsRequestTask$onPostExecute() tempResult=" + tempResult);
+
+                }
             }
 
-            final Activity activity = ArticleActivity.this;
+            //testWithWebView();
 
-            WebView view = ((WebView)findViewById(R.id.article));
-            view.setWebChromeClient(new WebChromeClient() {
-                public void onProgressChanged(WebView view, int progress) {
-                    activity.setProgress(progress * 1000);
-                }
-            });
-            view.setWebViewClient(new WebViewClient() {
-                @Override
-                public boolean shouldOverrideUrlLoading(final WebView view, final String url){
-                    Uri uri = Uri.parse(url);
-                    Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-                    startActivity(intent);
-                    return true;
-                }
+//            final Activity activity = ArticleActivity.this;
+//
+//            //WebView view = ((WebView)findViewById(R.id.article));
+//            view.setWebChromeClient(new WebChromeClient() {
+//                public void onProgressChanged(WebView view, int progress) {
+//                    activity.setProgress(progress * 1000);
+//                }
+//            });
+//            view.setWebViewClient(new WebViewClient() {
+//                @Override
+//                public boolean shouldOverrideUrlLoading(final WebView view, final String url){
+//                    Uri uri = Uri.parse(url);
+//                    Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+//                    startActivity(intent);
+//                    return true;
+//                }
+//
+//                public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
+//                    Toast.makeText(activity, "Oh noes! " + description, Toast.LENGTH_SHORT).show();
+//                }
+//            });
 
-                public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
-                    Toast.makeText(activity, "Oh noes! " + description, Toast.LENGTH_SHORT).show();
-                }
-            });
+            //Log.e(TAG, "ArticleDetailsRequestTask$onPostExecute() result = " + result);
 
-            String text = "<html><head>"
-                    + "<style type=\"text/css\">body{color: #fff; background-color: #000;}"
-                    + "</style></head>"
-                    + "<body>"
-                    + result
-                    + "</body></html>";
+            setArcticleToWebView(result);
 
-            // Set content and show
-            if(ApplicationHelper.is_night_view()){
-                view.loadData(text, "text/html; charset=UTF-8", null);
-            } else {
-                view.loadData(result, "text/html; charset=UTF-8", null);
-            }
-            view.setVisibility(View.VISIBLE);
+//            String htmlContent = changeContentStyle(result);
+//
+//            view.loadData(htmlContent, "text/html; charset=UTF-8", null);
+//            view.setVisibility(View.VISIBLE);
+//
+//            // Alex set Webview zoomable on API >= 11
+//            view.getSettings().setBuiltInZoomControls(true);
+//            view.getSettings().setDisplayZoomControls(true);
         }
     }
-
+    //----------------------------------------------------------------------------------
+    //------------------- END: of AsyncTask "ArticleDetailsRequestTask"-----------------
+    //----------------------------------------------------------------------------------
 
     protected void displayProgressBar(String message) {
         pDialog = ProgressDialog.show(this, null, message);
@@ -154,15 +218,32 @@ public class ArticleActivity extends Activity {
         getWindow().requestFeature(Window.FEATURE_PROGRESS);
         setContentView(R.layout.activity_article);
 
+        view = ((WebView)findViewById(R.id.article));
+
         _rssItem = (RssItem)getIntent().getSerializableExtra("rssItem");
-        ArticleDetailsRequestTask task = new ArticleDetailsRequestTask();
-        task.execute(_rssItem.getLink());
+
+        boolean wholeTextIsGiven = checkIfWholeTextToGivenUrlIsGiven(_rssItem.getLink());
+        Log.e(TAG, "onCreate() wholeTextIsGiven = " + wholeTextIsGiven);
+        if(wholeTextIsGiven){
+            setArcticleToWebView(wholeText);
+        } else {
+            ArticleDetailsRequestTask task = new ArticleDetailsRequestTask();
+            //Log.e(TAG, "ArticleDetailsRequestTask$onCreate() rssItem.getLink() = " + _rssItem.getLink());
+            task.execute(_rssItem.getLink());
+        }
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_article, menu);
+        fontSizeMinusMenuIem = menu.getItem(2);
+        fontSizePlusMenuIem = menu.getItem(3);
+
         return true;
     }
 
@@ -190,7 +271,131 @@ public class ArticleActivity extends Activity {
 
         }
 
+        if(id == R.id.menu_item_article_fontsize_plus){
+            int fontSize = ApplicationHelper.get_fontSize();
+            if(fontSize <= 400){
+                int newFontSize = fontSize + 20;
+                ApplicationHelper.set_fontSize(newFontSize);
+
+                if(newFontSize>= 400){
+                    fontSizePlusMenuIem.setEnabled(false);
+                } else {
+                    fontSizePlusMenuIem.setEnabled(true);
+                }
+
+                // Refresh activity
+                finish();
+                startActivity(getIntent());
+            }
+        }
+
+        if(id == R.id.menu_item_article_fontsize_minus){
+            int fontSize = ApplicationHelper.get_fontSize();
+            if(fontSize >= 60){
+                int newFontSize = fontSize - 20;
+                ApplicationHelper.set_fontSize(newFontSize);
+
+                if(newFontSize <= 60){
+                    fontSizeMinusMenuIem.setEnabled(false);
+                } else {
+                    fontSizeMinusMenuIem.setEnabled(true);
+                }
+
+                // Refresh activity
+                finish();
+                startActivity(getIntent());
+            }
+        }
+
+
         return super.onOptionsItemSelected(item);
+    }
+
+    private String changeContentStyle(String result){
+        String text;
+        int fontSize = ApplicationHelper.get_fontSize();
+
+        if(ApplicationHelper.is_night_view()){
+
+            text = "<html><head>"
+                    + "<style type=\"text/css\">body{color: #FFF; background-color: #000;"
+                    + "font-size:" + fontSize + "%;}"
+                    + "</style></head>"
+                    + "<body>"
+                    + result
+                    + "</body></html>";
+        } else {
+            text = "<html><head>"
+                    + "<style type=\"text/css\">body{color: #000; background-color: #FFF;"
+                    + "font-size:" + fontSize + "%;}"
+                    + "</style></head>"
+                    + "<body>"
+                    + result
+                    + "</body></html>";
+        }
+
+        return text;
+    }
+
+    private void testWithWebView(){
+        Log.e(TAG, "testWithWebView() was called ");
+        final Activity activity = ArticleActivity.this;
+
+        //WebView view = ((WebView)findViewById(R.id.article));
+        view.setWebChromeClient(new WebChromeClient() {
+            public void onProgressChanged(WebView view, int progress) {
+                activity.setProgress(progress * 1000);
+            }
+        });
+        view.setWebViewClient(new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(final WebView view, final String url){
+                Uri uri = Uri.parse(url);
+                Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                startActivity(intent);
+                return true;
+            }
+
+            public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
+                Toast.makeText(activity, "Oh noes! " + description, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private boolean checkIfWholeTextToGivenUrlIsGiven(String urlId){
+        boolean wholeTextIsGiven = false;
+        wholeText = null;
+
+        News2DbController news2DbController = new News2DbController(ApplicationHelper.getAppContext());
+        News2Content tempNews2Content = news2DbController.getOneContentEntryByUrlId(urlId);
+
+        if(tempNews2Content != null){
+            String wholeTextTemp = tempNews2Content.getWholetextSql();
+            if(wholeTextTemp != null){
+                if(!wholeTextTemp.equals("")){
+                    wholeText = wholeTextTemp;
+                    wholeTextIsGiven = true;
+                } else {
+                    Log.e(TAG, "checkIfWholeTextToGivenUrlIsGiven() wholeTextTemp is EMPTY");
+                }
+            } else {
+                Log.e(TAG, "checkIfWholeTextToGivenUrlIsGiven() wholeTextTemp is NULL");
+            }
+        } else {
+            Log.e(TAG, "checkIfWholeTextToGivenUrlIsGiven() tempNews2Content is NULL");
+        }
+        return wholeTextIsGiven;
+    }
+
+    private void setArcticleToWebView(String wholeText){
+        String htmlContent = changeContentStyle(wholeText);
+
+        view.loadData(htmlContent, "text/html; charset=UTF-8", null);
+        view.setVisibility(View.VISIBLE);
+
+        // Alex set Webview zoomable on API >= 11
+        view.getSettings().setBuiltInZoomControls(true);
+        view.getSettings().setDisplayZoomControls(true);
     }
 
 }

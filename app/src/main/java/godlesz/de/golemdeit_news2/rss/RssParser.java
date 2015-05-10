@@ -1,5 +1,7 @@
 package godlesz.de.golemdeit_news2.rss;
 
+import android.content.Context;
+import android.util.Log;
 import android.util.Xml;
 
 import org.w3c.dom.Document;
@@ -20,12 +22,24 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
+import godlesz.de.golemdeit_news2.ApplicationHelper;
+import godlesz.de.golemdeit_news2.database.News2Content;
+import godlesz.de.golemdeit_news2.database.News2DbController;
+
 public class RssParser {
+    public static final String TAG = RssParser.class.getSimpleName();
+
+    Context myContext = ApplicationHelper.getAppContext();
+
+    //private static News2DbController news2DbController = ApplicationHelper.getNews2DbController();
+    News2DbController news2DbController = new News2DbController(ApplicationHelper.getAppContext());
 
     // We don't use namespaces
     private final String XML_NAMESPACE = null;
 
     public List<RssItem> parse(InputStream inputStream) throws XmlPullParserException, IOException {
+        //Log.e(TAG, "parse() was called.");
+
         List<RssItem> items = new ArrayList<RssItem>();
         try {
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
@@ -59,7 +73,9 @@ public class RssParser {
     }
 
     private RssItem readRssItemFromNode(Node node) {
-        Element itemElement = (Element)node;
+        //Log.e(TAG, "readRssItemFromNode() was called.");
+
+        Element itemElement = (Element) node;
 
         RssItem item = new RssItem();
         item.setTitle(itemElement.getElementsByTagName("title").item(0).getFirstChild().getNodeValue());
@@ -74,6 +90,17 @@ public class RssParser {
             item.setCommentCount(itemElement.getElementsByTagName("slash:comments").item(0).getFirstChild().getNodeValue());
         }
 
+        // Alex Daten in DB speichern
+        News2Content tempNews2Content = new News2Content();
+        tempNews2Content.setTitleSql(item.getTitle());
+        tempNews2Content.setDescriptionSql(item.getDescription());
+        tempNews2Content.setPubdateSql(item.getPubDate());
+        tempNews2Content.setCommentUrlSql(item.getCommentUrl());
+        tempNews2Content.setCommentCountSql(item.getCommentCount());
+        tempNews2Content.setLinkSql(item.getLink());
+
+        saveState(tempNews2Content);
+
         return item;
     }
 
@@ -87,18 +114,6 @@ public class RssParser {
                 continue;
             }
 
-            /*
-            <item>
-                <title>Digitale Agenda: Merkel fühlt sich im Neuland verfolgt</title>
-                <link>http://rss.feedsportal.com/c/33374/f/578068/p/1/s/696021eb/l/0L0Sgolem0Bde0Cnews0Cdigitale0Eagenda0Emerkel0Efuehlt0Esich0Eim0Eneuland0Everfolgt0E14110E110A3430Erss0Bhtml/story01.htm</link>
-                <description>"Ich bin doch nicht blöd": Bundeskanzlerin Merkel will sich nicht über ihre Einkaufspräferenzen im Netz äußern. Dass das Internet für sie immer noch Neuland ist, bewies sie wieder mit Aussagen zur Netzneutralität und zu Internetwerbung. (&lt;a href="http://www.golem.de/specials/digitale-agenda/"&gt;Digitale Agenda&lt;/a&gt;, &lt;a href="http://www.golem.de/specials/netzneutralitaet/"&gt;Netzneutralität&lt;/a&gt;) &lt;img src="http://cpx.golem.de/cpx.php?class=17&amp;amp;aid=110343&amp;amp;page=1&amp;amp;ts=1415217060" alt="" width="1" height="1" /&gt;&lt;img width='1' height='1' src='http://rss.feedsportal.com/c/33374/f/578068/p/1/s/696021eb/mf.gif' border='0'/&gt;&lt;br/&gt;&lt;br/&gt;&lt;a href="http://da.feedsportal.com/r/204223014498/u/218/f/578068/c/33374/s/696021eb/a2.htm"&gt;&lt;img src="http://da.feedsportal.com/r/204223014498/u/218/f/578068/c/33374/s/696021eb/a2.img" border="0"/&gt;&lt;/a&gt;&lt;img width="1" height="1" src="http://pi.feedsportal.com/r/204223014498/u/218/f/578068/c/33374/s/696021eb/a2t.img" border="0"/&gt;</description>
-                <pubDate>Wed, 05 Nov 2014 19:51:00 GMT</pubDate>
-                <comments>http://forum.golem.de/kommentare/internet/digitale-agenda-merkel-fuehlt-sich-im-neuland-verfolgt/87659,list.html</comments>
-                <guid isPermaLink="false">http://www.golem.de/1411/110343-rss.html</guid>
-                <content:encoded><![CDATA[<img src="http://www.golem.de/1411/110343-89571-i_rc.jpg" width="140" height="140" vspace="3" hspace="8" align="left">"Ich bin doch nicht blöd": Bundeskanzlerin Merkel will sich nicht über ihre Einkaufspräferenzen im Netz äußern. Dass das Internet für sie immer noch Neuland ist, bewies sie wieder mit Aussagen zur Netzneutralität und zu Internetwerbung. (<a href="http://www.golem.de/specials/digitale-agenda/">Digitale Agenda</a>, <a href="http://www.golem.de/specials/netzneutralitaet/">Netzneutralität</a>) <img src="http://cpx.golem.de/cpx.php?class=17&#38;aid=110343&#38;page=1&#38;ts=1415217060" alt="" width="1" height="1" /><img width='1' height='1' src='http://rss.feedsportal.com/c/33374/f/578068/p/1/s/696021eb/mf.gif' border='0'/><br/><br/><a href="http://da.feedsportal.com/r/204223014498/u/218/f/578068/c/33374/s/696021eb/a2.htm"><img src="http://da.feedsportal.com/r/204223014498/u/218/f/578068/c/33374/s/696021eb/a2.img" border="0"/></a><img width="1" height="1" src="http://pi.feedsportal.com/r/204223014498/u/218/f/578068/c/33374/s/696021eb/a2t.img" border="0"/>]]></content:encoded>
-                <slash:comments>41</slash:comments>
-            </item>
-             */
             String name = parser.getName();
             if (name.equals("title")) {
                 item.setTitle(readSimpleTag(parser, "title"));
@@ -141,4 +156,13 @@ public class RssParser {
         return result;
     }
 
+    private void saveState(News2Content news2Content) {
+        //Log.e(TAG, "saveState() was called");
+
+        if (news2DbController != null) {
+            if (!news2DbController.checkIfGuidAlreadyExists(news2Content.getLinkSql())) {
+                news2DbController.insertNewsDataInDatabase(news2Content);
+            }
+        }
+    }
 }
